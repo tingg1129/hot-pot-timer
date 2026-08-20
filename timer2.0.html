@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>小火锅计时器</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        /* ========== 全局重置 & 设计基调 ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+            background: #f0ebe6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 12px;
+        }
+
+        .phone-frame {
+            width: 100%;
+            max-width: 420px;
+            height: 780px;
+            background: #FFF9F2;
+            border-radius: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 154, 92, 0.15);
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: #FFF9F2;
+            overflow: hidden;
+            transition: opacity 0.3s ease;
+        }
+        .page.active {
+            display: flex;
+            z-index: 10;
+        }
+
+        :root {
+            --primary: #FF9A5C;
+            --primary-dark: #e88544;
+            --bg: #FFF9F2;
+            --card: #FFFFFF;
+            --text-main: #4A3E35;
+            --text-secondary: #998B80;
+            --pink: #FFD2D2;
+            --green: #D7F2D9;
+            --yellow: #FFF0BC;
+            --blue: #D6EDFF;
+            --success: #76D188;
+            --highlight: #FFBC79;
+            --disabled: #DCD2C8;
+            --shadow: 0 6px 24px rgba(74, 62, 53, 0.08);
+            --radius-card: 24rpx;
+            --radius-btn: 30rpx;
+            --radius-tag: 20rpx;
+        }
+
+        @media (max-width: 420px) {
+            .phone-frame {
+                height: 100vh;
+                max-height: 820px;
+                border-radius: 28px;
+            }
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 30rpx;
+            padding: 14px 32px;
+            font-size: 18px;
+            font-weight: 700;
+            box-shadow: 0 4px 16px rgba(255, 154, 92, 0.35);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            letter-spacing: 0.5px;
+            font-family: inherit;
+        }
+        .btn-primary:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(255, 154, 92, 0.25);
+        }
+        .btn-secondary {
+            background: #fff;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            border-radius: 30rpx;
+            padding: 12px 28px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: inherit;
+        }
+        .btn-secondary:active {
+            transform: scale(0.95);
+            background: #fff5ed;
+        }
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 20rpx;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 30rpx;
+            font-size: 12px;
+            font-weight: 500;
+            background: var(--pink);
+            color: var(--text-main);
+        }
+
+        .radius-card {
+            border-radius: 24rpx;
+        }
+        .radius-btn {
+            border-radius: 30rpx;
+        }
+
+        /* ========== 闪屏页 ========== */
+        #splash {
+            background: linear-gradient(145deg, #FFF9F2 0%, #FFE8D6 100%);
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 100;
+        }
+        #splash .splash-content {
+            animation: floatUp 1.6s ease-out forwards;
+            padding: 20px;
+        }
+        @keyframes floatUp {
+            0% {
+                opacity: 0;
+                transform: translateY(30px) scale(0.92);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .splash-pot {
+            font-size: 100px;
+            display: block;
+            margin-bottom: 12px;
+            filter: drop-shadow(0 12px 24px rgba(255, 154, 92, 0.25));
+            animation: potBreathe 2.4s ease-in-out infinite;
+        }
+        @keyframes potBreathe {
+            0%,
+            100% {
+                transform: scale(1) rotate(-1deg);
+            }
+            50% {
+                transform: scale(1.04) rotate(1deg);
+            }
+        }
+        .splash-title {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: 2px;
+        }
+        .splash-title span {
+            color: var(--primary);
+        }
+        .splash-sub {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            letter-spacing: 4px;
+            font-weight: 400;
+        }
+        .splash-food {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 20px;
+            font-size: 32px;
+            animation: foodFloat 3s ease-in-out infinite;
+        }
+        @keyframes foodFloat {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+        .splash-food span {
+            display: inline-block;
+            animation-delay: calc(var(--i, 0) * 0.2s);
+        }
+
+        /* ========== 首页 ========== */
+        #home {
+            display: none;
+            flex-direction: column;
+            background: var(--bg);
+        }
+        #home.active {
+            display: flex;
+        }
+
+        .nav-bar {
+            padding: 16px 20px 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            background: transparent;
+            z-index: 5;
+        }
+        .nav-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: 0.5px;
+        }
+        .nav-title i {
+            color: var(--primary);
+            margin-right: 6px;
+        }
+        .nav-actions {
+            display: flex;
+            gap: 12px;
+        }
+        .nav-actions button {
+            background: rgba(255, 255, 255, 0.7);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 18px;
+            color: var(--text-main);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            cursor: pointer;
+            transition: 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-actions button:active {
+            transform: scale(0.90);
+            background: rgba(255, 154, 92, 0.15);
+        }
+
+        /* 火锅区域 */
+        .pot-area {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+            margin: 0 12px 4px 12px;
+            background: radial-gradient(ellipse at 50% 80%, #fff5eb 0%, #ffede1 100%);
+            border-radius: 40rpx;
+            overflow: hidden;
+            border: 3px solid rgba(255, 154, 92, 0.20);
+            box-shadow: inset 0 -8px 24px rgba(255, 154, 92, 0.06);
+        }
+
+        .pot-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 10px 10px 10px;
+        }
+        .pot-svg {
+            width: 92%;
+            max-width: 320px;
+            aspect-ratio: 1/1;
+            position: relative;
+            filter: drop-shadow(0 8px 24px rgba(255, 154, 92, 0.12));
+        }
+
+        .pot-bg {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: radial-gradient(ellipse at 50% 55%, #fff5e8 0%, #ffdcc4 100%);
+            overflow: hidden;
+            box-shadow: inset 0 -12px 30px rgba(255, 154, 92, 0.10);
+        }
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.50);
+            animation: bubbleRise linear infinite;
+            pointer-events: none;
+        }
+        @keyframes bubbleRise {
+            0% {
+                transform: translateY(0) scale(0.6);
+                opacity: 0.6;
+            }
+            100% {
+                transform: translateY(-120px) scale(1.2);
+                opacity: 0;
+            }
+        }
+
+        .pot-dishes {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        .pot-dish-item {
+            position: absolute;
+            font-size: 32px;
+            transition: all 0.3s ease;
+            animation: dishFloat 2.8s ease-in-out infinite;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.06));
+            pointer-events: none;
+            user-select: none;
+        }
+        @keyframes dishFloat {
+            0%,
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-6px) rotate(2deg);
+            }
+        }
+        .pot-dish-item.ending {
+            animation: dishJump 0.6s ease-in-out infinite alternate;
+        }
+        @keyframes dishJump {
+            0% {
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                transform: translateY(-18px) scale(1.2);
+            }
+        }
+
+        /* 计时卡片容器 — 使用圆环分布 */
+        .timer-cards {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        .timer-card {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(4px);
+            border-radius: 16rpx;
+            padding: 4px 8px 6px 8px;
+            min-width: 56px;
+            box-shadow: 0 4px 16px rgba(74, 62, 53, 0.10);
+            border: 1px solid rgba(255, 154, 92, 0.10);
+            pointer-events: auto;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0px;
+            transform: translate(-50%, -50%);
+            /* 居中定位 */
+            white-space: nowrap;
+        }
+        .timer-card .dish-icon {
+            font-size: 22px;
+            line-height: 1.2;
+        }
+        .timer-card .dish-name {
+            font-size: 10px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .timer-card .time-display {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: 0.3px;
+            line-height: 1.2;
+            font-variant-numeric: tabular-nums;
+        }
+        .timer-card .time-display.warning {
+            color: var(--primary);
+            animation: blinkWarn 0.8s ease-in-out infinite;
+        }
+        @keyframes blinkWarn {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.4;
+            }
+        }
+        .timer-card .card-actions {
+            display: flex;
+            gap: 4px;
+            margin-top: 1px;
+        }
+        .timer-card .card-actions button {
+            background: none;
+            border: none;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 10rpx;
+            transition: 0.15s;
+        }
+        .timer-card .card-actions button:active {
+            background: rgba(255, 154, 92, 0.12);
+        }
+        .timer-card .card-actions .pause-btn {
+            color: var(--primary);
+        }
+        .timer-card .card-actions .close-btn {
+            color: #d4c8be;
+        }
+
+        /* 底部操作栏 */
+        .bottom-bar {
+            padding: 12px 20px 20px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            gap: 12px;
+            background: transparent;
+        }
+        .bottom-bar .btn-add {
+            flex: 1;
+            justify-content: center;
+            font-size: 18px;
+            padding: 14px 0;
+            border-radius: 30rpx;
+        }
+        .bottom-bar .btn-clear {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 20rpx;
+            transition: 0.15s;
+            font-weight: 500;
+        }
+        .bottom-bar .btn-clear:active {
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        /* ========== 菜品选择弹窗 ========== */
+        .modal-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.30);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 50;
+            border-radius: 40rpx;
+            overflow: hidden;
+        }
+        .modal-overlay.open {
+            display: flex;
+        }
+        .modal-sheet {
+            background: #fff;
+            width: 100%;
+            max-height: 78%;
+            border-radius: 32rpx 32rpx 0 0;
+            padding: 20px 16px 30px 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.06);
+        }
+        @keyframes slideUp {
+            0% {
+                transform: translateY(40px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        .modal-handle {
+            width: 40px;
+            height: 4px;
+            background: #ddd2c8;
+            border-radius: 4px;
+            margin: 0 auto 14px auto;
+        }
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-title .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0 8px;
+        }
+
+        .category-tabs {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 12px;
+            flex-shrink: 0;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .category-tabs::-webkit-scrollbar {
+            display: none;
+        }
+        .category-tabs .cat-tab {
+            flex-shrink: 0;
+            padding: 6px 18px;
+            border-radius: 30rpx;
+            font-size: 14px;
+            font-weight: 500;
+            background: #f5efe9;
+            color: var(--text-secondary);
+            border: none;
+            cursor: pointer;
+            transition: 0.15s;
+            font-family: inherit;
+        }
+        .category-tabs .cat-tab.active {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 2px 12px rgba(255, 154, 92, 0.30);
+        }
+        .category-tabs .cat-tab:active {
+            transform: scale(0.94);
+        }
+
+        .dish-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            overflow-y: auto;
+            padding: 4px 0 12px 0;
+            flex: 1;
+            align-content: start;
+        }
+        .dish-grid .dish-item {
+            background: #fcf8f4;
+            border-radius: 20rpx;
+            padding: 12px 6px 10px 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.15s;
+            border: 2px solid transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .dish-grid .dish-item:active {
+            transform: scale(0.94);
+            background: #fff3ea;
+        }
+        .dish-grid .dish-item .d-icon {
+            font-size: 34px;
+            line-height: 1;
+        }
+        .dish-grid .dish-item .d-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+        .dish-grid .dish-item .d-time {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        .dish-grid .dish-item .d-fav {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            cursor: pointer;
+        }
+        .dish-grid .dish-item .d-fav.active {
+            color: #ff6b6b;
+        }
+
+        .modal-footer {
+            padding-top: 12px;
+            border-top: 1px solid #f0ebe6;
+            display: flex;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        .modal-footer .btn-custom {
+            flex: 1;
+            background: #f5efe9;
+            border: none;
+            border-radius: 30rpx;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: 0.15s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .modal-footer .btn-custom:active {
+            transform: scale(0.96);
+            background: #ece2d9;
+        }
+
+        /* ========== 完成弹窗 ========== */
+        .complete-modal {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 60;
+            border-radius: 40rpx;
+            padding: 30px;
+        }
+        .complete-modal.open {
+            display: flex;
+        }
+        .complete-box {
+            background: #fff;
+            border-radius: 32rpx;
+            padding: 30px 24px 28px 24px;
+            max-width: 320px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            animation: popIn 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        @keyframes popIn {
+            0% {
+                transform: scale(0.7) translateY(20px);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+        .complete-box .sparkle {
+            font-size: 52px;
+            display: block;
+            margin-bottom: 4px;
+            animation: sparkleSpin 1.2s ease-in-out infinite;
+        }
+        @keyframes sparkleSpin {
+            0%,
+            100% {
+                transform: scale(1) rotate(0deg);
+            }
+            50% {
+                transform: scale(1.2) rotate(8deg);
+            }
+        }
+        .complete-box .c-icon {
+            font-size: 64px;
+            display: block;
+            margin: 6px 0;
+        }
+        .complete-box .c-text {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin: 8px 0 4px 0;
+        }
+        .complete-box .c-sub {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin-bottom: 18px;
+        }
+        .complete-box .c-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .complete-box .c-actions button {
+            padding: 10px 24px;
+            border-radius: 30rpx;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: 0.15s;
+            font-family: inherit;
+        }
+        .complete-box .c-actions .btn-done {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(255, 154, 92, 0.30);
+        }
+        .complete-box .c-actions .btn-done:active {
+            transform: scale(0.94);
+        }
+        .complete-box .c-actions .btn-snooze {
+            background: #f5efe9;
+            color: var(--text-secondary);
+        }
+        .complete-box .c-actions .btn-snooze:active {
+            transform: scale(0.94);
+            background: #ece2d9;
+        }
+
+        /* ========== 设置页 ========== */
+        #settings {
+            display: none;
+            flex-direction: column;
+            background: var(--bg);
+            padding: 20px;
+        }
+        #settings.active {
+            display: flex;
+        }
+        .settings-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #f0ebe6;
+        }
+        .settings-header .back-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-main);
+            padding: 4px 8px;
+        }
+        .settings-header h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        .settings-list {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #fff;
+            border-radius: 20rpx;
+            box-shadow: var(--shadow);
+        }
+        .settings-item .label {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+        .settings-item .desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .switch {
+            width: 48px;
+            height: 28px;
+            background: #ddd2c8;
+            border-radius: 30rpx;
+            position: relative;
+            cursor: pointer;
+            transition: 0.2s;
+            flex-shrink: 0;
+        }
+        .switch.on {
+            background: var(--primary);
+        }
+        .switch .knob {
+            width: 22px;
+            height: 22px;
+            background: #fff;
+            border-radius: 50%;
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            transition: 0.2s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+        }
+        .switch.on .knob {
+            left: 23px;
+        }
+
+        .scrollable {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .scrollable::-webkit-scrollbar {
+            width: 3px;
+        }
+        .scrollable::-webkit-scrollbar-thumb {
+            background: #ddd2c8;
+            border-radius: 10px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .mt-8 {
+            margin-top: 8px;
+        }
+        .gap-4 {
+            gap: 4px;
+        }
+
+        .empty-state {
+            color: var(--text-secondary);
+            font-size: 14px;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        @media (max-width: 440px) {
+            .phone-frame {
+                border-radius: 24px;
+                height: 100vh;
+                max-height: 780px;
+            }
+            .timer-card .time-display {
+                font-size: 16px;
+            }
+            .timer-card .dish-icon {
+                font-size: 18px;
+            }
+            .timer-card {
+                min-width: 48px;
+                padding: 3px 6px 4px 6px;
+            }
+            .pot-dish-item {
+                font-size: 26px;
+            }
+            .dish-grid .dish-item .d-icon {
+                font-size: 28px;
+            }
+        }
+        @media (max-width: 380px) {
+            .timer-card {
+                min-width: 40px;
+                padding: 2px 4px 3px 4px;
+            }
+            .timer-card .time-display {
+                font-size: 13px;
+            }
+            .timer-card .dish-icon {
+                font-size: 15px;
+            }
+            .timer-card .dish-name {
+                font-size: 8px;
+            }
+            .dish-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="phone-frame" id="app">
+
+        <!-- ===== 闪屏页 ===== -->
+        <div class="page active" id="splash">
+            <div class="splash-content">
+                <div class="splash-pot">🍲</div>
+                <div class="splash-title">小<span>火</span>锅<span>计</span>时器</div>
+                <div class="splash-sub">每一口都是刚刚好</div>
+                <div class="splash-food">
+                    <span style="--i:0">🥩</span>
+                    <span style="--i:1">🍄</span>
+                    <span style="--i:2">🦐</span>
+                    <span style="--i:3">🥬</span>
+                    <span style="--i:4">🍡</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 首页 ===== -->
+        <div class="page" id="home">
+            <!-- 导航 -->
+            <div class="nav-bar">
+                <div class="nav-title"><i class="fas fa-fire"></i> 小火锅烫菜</div>
+                <div class="nav-actions">
+                    <button onclick="openSettings()" aria-label="设置"><i class="fas fa-sliders-h"></i></button>
+                    <button onclick="toggleTheme()" aria-label="主题"><i class="fas fa-palette"></i></button>
+                </div>
+            </div>
+
+            <!-- 火锅区域 -->
+            <div class="pot-area" id="potArea">
+                <div class="pot-wrapper">
+                    <div class="pot-svg">
+                        <!-- 锅底 -->
+                        <div class="pot-bg" id="potBg"></div>
+                        <!-- 锅中菜品 -->
+                        <div class="pot-dishes" id="potDishes"></div>
+                        <!-- 计时卡片 -->
+                        <div class="timer-cards" id="timerCards"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部 -->
+            <div class="bottom-bar">
+                <button class="btn-primary btn-add" onclick="openDishSelector()">
+                    <i class="fas fa-plus-circle"></i> 添加菜品
+                </button>
+                <button class="btn-clear" onclick="clearAllTimers()">一键清空</button>
+            </div>
+        </div>
+
+        <!-- ===== 菜品选择弹窗 ===== -->
+        <div class="modal-overlay" id="dishModal">
+            <div class="modal-sheet">
+                <div class="modal-handle"></div>
+                <div class="modal-title">
+                    <span>🥘 选菜品下锅</span>
+                    <button class="close-modal" onclick="closeDishSelector()">✕</button>
+                </div>
+                <div class="category-tabs" id="categoryTabs"></div>
+                <div class="dish-grid scrollable" id="dishGrid"></div>
+                <div class="modal-footer">
+                    <button class="btn-custom" onclick="addCustomDish()">
+                        <i class="fas fa-pen"></i> 自定义菜品
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 计时完成弹窗 ===== -->
+        <div class="complete-modal" id="completeModal">
+            <div class="complete-box">
+                <span class="sparkle">✨</span>
+                <span class="c-icon" id="completeIcon">🥩</span>
+                <div class="c-text" id="completeTitle">肥牛煮好啦！</div>
+                <div class="c-sub" id="completeSub">可以捞出来咯 ~</div>
+                <div class="c-actions">
+                    <button class="btn-done" onclick="doneComplete()"><i class="fas fa-check"></i> 已经捞起</button>
+                    <button class="btn-snooze" onclick="snoozeComplete()">⏰ 再多煮一会</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 设置页 ===== -->
+        <div class="page" id="settings">
+            <div class="settings-header">
+                <button class="back-btn" onclick="closeSettings()"><i class="fas fa-arrow-left"></i></button>
+                <h2>⚙️ 设置</h2>
+            </div>
+            <div class="settings-list">
+                <div class="settings-item">
+                    <div><div class="label">🔊 语音播报</div><div class="desc">软萌卡通女声提醒</div></div>
+                    <div class="switch on" id="switchVoice" onclick="toggleSwitch('voice')"><div class="knob"></div></div>
+                </div>
+                <div class="settings-item">
+                    <div><div class="label">📳 震动提醒</div><div class="desc">手机震动反馈</div></div>
+                    <div class="switch on" id="switchVibrate" onclick="toggleSwitch('vibrate')"><div class="knob"></div></div>
+                </div>
+                <div class="settings-item">
+                    <div><div class="label">🌙 后台计时</div><div class="desc">退出后继续计时</div></div>
+                    <div class="switch on" id="switchBackground" onclick="toggleSwitch('background')"><div class="knob"></div></div>
+                </div>
+                <div class="settings-item">
+                    <div><div class="label">🎨 主题配色</div><div class="desc">暖橘 · 治愈</div></div>
+                    <div style="display:flex;gap:6px;">
+                        <span style="width:28px;height:28px;border-radius:50%;background:#FF9A5C;border:2px solid #fff;box-shadow:0 0 0 2px #FF9A5C;"></span>
+                        <span style="width:28px;height:28px;border-radius:50%;background:#FFD2D2;border:2px solid #ddd;"></span>
+                        <span style="width:28px;height:28px;border-radius:50%;background:#D7F2D9;border:2px solid #ddd;"></span>
+                    </div>
+                </div>
+                <div class="settings-item" style="justify-content:center;gap:12px;background:transparent;box-shadow:none;padding:8px 0;">
+                    <span style="font-size:13px;color:var(--text-secondary);">小火锅计时器 v1.0 · 治愈每一口</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ========================================================================
+        //  数据层
+        // ========================================================================
+
+        const DISH_LIBRARY = [
+            { id: 'beef', name: '肥牛', icon: '🥩', category: '肉类', defaultTime: 15, unit: 's' },
+            { id: 'lamb', name: '肥羊', icon: '🐑', category: '肉类', defaultTime: 20, unit: 's' },
+            { id: 'beef_slice', name: '嫩牛肉', icon: '🥩', category: '肉类', defaultTime: 30, unit: 's' },
+            { id: 'pork_slice', name: '五花肉', icon: '🥓', category: '肉类', defaultTime: 40, unit: 's' },
+            { id: 'chicken_slice', name: '乌鸡卷', icon: '🐔', category: '肉类', defaultTime: 20, unit: 's' },
+            { id: 'shrimp_paste', name: '虾滑', icon: '🦐', category: '丸子类', defaultTime: 180, unit: 's' },
+            { id: 'beef_ball', name: '撒尿牛丸', icon: '🧆', category: '丸子类', defaultTime: 240, unit: 's' },
+            { id: 'fish_tofu', name: '鱼豆腐', icon: '🧈', category: '丸子类', defaultTime: 120, unit: 's' },
+            { id: 'fish_ball', name: '鱼丸', icon: '🐟', category: '丸子类', defaultTime: 180, unit: 's' },
+            { id: 'crab_stick', name: '蟹棒', icon: '🦀', category: '丸子类', defaultTime: 90, unit: 's' },
+            { id: 'cheese_ball', name: '芝士丸', icon: '🧀', category: '丸子类', defaultTime: 180, unit: 's' },
+            { id: 'potato', name: '土豆片', icon: '🥔', category: '素菜类', defaultTime: 180, unit: 's' },
+            { id: 'lotus_root', name: '藕片', icon: '🪷', category: '素菜类', defaultTime: 150, unit: 's' },
+            { id: 'enoki', name: '金针菇', icon: '🍄', category: '素菜类', defaultTime: 120, unit: 's' },
+            { id: 'baby_cabbage', name: '娃娃菜', icon: '🥬', category: '素菜类', defaultTime: 90, unit: 's' },
+            { id: 'spinach', name: '菠菜', icon: '🥬', category: '素菜类', defaultTime: 30, unit: 's' },
+            { id: 'lettuce', name: '生菜', icon: '🥬', category: '素菜类', defaultTime: 20, unit: 's' },
+            { id: 'kelp', name: '海带结', icon: '🌿', category: '素菜类', defaultTime: 180, unit: 's' },
+            { id: 'yam', name: '山药片', icon: '🍠', category: '素菜类', defaultTime: 150, unit: 's' },
+            { id: 'corn', name: '玉米段', icon: '🌽', category: '素菜类', defaultTime: 300, unit: 's' },
+            { id: 'shiitake', name: '香菇', icon: '🍄', category: '菌菇类', defaultTime: 180, unit: 's' },
+            { id: 'crab_mushroom', name: '蟹味菇', icon: '🍄', category: '菌菇类', defaultTime: 120, unit: 's' },
+            { id: 'king_oyster', name: '杏鲍菇', icon: '🍄', category: '菌菇类', defaultTime: 150, unit: 's' },
+            { id: 'shrimp', name: '鲜虾', icon: '🦐', category: '海鲜类', defaultTime: 120, unit: 's' },
+            { id: 'squid_ring', name: '鱿鱼圈', icon: '🦑', category: '海鲜类', defaultTime: 90, unit: 's' },
+            { id: 'squid_tentacle', name: '鱿鱼须', icon: '🦑', category: '海鲜类', defaultTime: 120, unit: 's' },
+            { id: 'fish_fillet', name: '巴沙鱼', icon: '🐟', category: '海鲜类', defaultTime: 120, unit: 's' },
+            { id: 'vermicelli', name: '细粉丝', icon: '🍜', category: '主食类', defaultTime: 90, unit: 's' },
+            { id: 'wide_noodle', name: '宽粉', icon: '🍜', category: '主食类', defaultTime: 180, unit: 's' },
+            { id: 'instant_noodle', name: '方便面', icon: '🍜', category: '主食类', defaultTime: 120, unit: 's' },
+            { id: 'rice_cake', name: '年糕条', icon: '🍚', category: '主食类', defaultTime: 240, unit: 's' },
+        ];
+
+        const CATEGORIES = ['全部', '肉类', '丸子类', '素菜类', '菌菇类', '海鲜类', '主食类'];
+
+        // ========================================================================
+        //  状态管理
+        // ========================================================================
+
+        const state = {
+            timers: [],
+            currentCategory: '全部',
+            isSplash: true,
+            settings: {
+                voice: true,
+                vibrate: true,
+                background: true,
+            },
+            favorites: [],
+            customDishes: [],
+            _timerIdCounter: 0,
+            completeTimerId: null,
+        };
+
+        try {
+            const saved = localStorage.getItem('manshuan_favorites');
+            if (saved) state.favorites = JSON.parse(saved);
+            const custom = localStorage.getItem('manshuan_custom');
+            if (custom) state.customDishes = JSON.parse(custom);
+            const settings = localStorage.getItem('manshuan_settings');
+            if (settings) state.settings = { ...state.settings, ...JSON.parse(settings) };
+        } catch (e) { /* ignore */ }
+
+        function getAllDishes() {
+            return [...DISH_LIBRARY, ...state.customDishes];
+        }
+
+        function getDishById(id) {
+            return getAllDishes().find(d => d.id === id);
+        }
+
+        function saveFavorites() {
+            localStorage.setItem('manshuan_favorites', JSON.stringify(state.favorites));
+        }
+
+        // ========================================================================
+        //  闪屏控制
+        // ========================================================================
+
+        setTimeout(() => {
+            document.getElementById('splash').classList.remove('active');
+            document.getElementById('home').classList.add('active');
+            state.isSplash = false;
+            initHome();
+        }, 2200);
+
+        // ========================================================================
+        //  首页初始化
+        // ========================================================================
+
+        let bubbleInterval = null;
+
+        function initHome() {
+            generateBubbles();
+            renderTimers();
+            if (bubbleInterval) clearInterval(bubbleInterval);
+            bubbleInterval = setInterval(generateBubbles, 4000);
+        }
+
+        function generateBubbles() {
+            const container = document.getElementById('potBg');
+            if (!container) return;
+            const count = 4 + Math.floor(Math.random() * 4);
+            for (let i = 0; i < count; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                const size = 12 + Math.random() * 20;
+                bubble.style.width = size + 'px';
+                bubble.style.height = size + 'px';
+                bubble.style.left = (10 + Math.random() * 80) + '%';
+                bubble.style.bottom = (10 + Math.random() * 30) + '%';
+                bubble.style.animationDuration = (2.6 + Math.random() * 2.4) + 's';
+                bubble.style.animationDelay = (Math.random() * 0.8) + 's';
+                container.appendChild(bubble);
+                setTimeout(() => { if (bubble.parentNode) bubble.remove(); }, 5000);
+            }
+        }
+
+        // ========================================================================
+        //  计时器核心逻辑
+        // ========================================================================
+
+        function addTimer(dishId) {
+            const dish = getDishById(dishId);
+            if (!dish) return;
+
+            const total = dish.defaultTime;
+            const id = ++state._timerIdCounter;
+            const timer = {
+                id,
+                dishId: dish.id,
+                dishName: dish.name,
+                icon: dish.icon,
+                remaining: total,
+                total: total,
+                paused: false,
+                createdAt: Date.now(),
+                timerId: null,
+            };
+            state.timers.push(timer);
+            startTimerTick(timer);
+            renderTimers();
+            renderPotDishes();
+            closeDishSelector();
+
+            if (state.settings.vibrate) {
+                try { navigator.vibrate && navigator.vibrate(12); } catch (e) { /* ignore */ }
+            }
+        }
+
+        function startTimerTick(timer) {
+            if (timer.timerId) clearInterval(timer.timerId);
+            timer.timerId = setInterval(() => {
+                if (timer.paused) return;
+                timer.remaining -= 1;
+                if (timer.remaining <= 0) {
+                    timer.remaining = 0;
+                    clearInterval(timer.timerId);
+                    timer.timerId = null;
+                    onTimerComplete(timer);
+                }
+                renderTimers();
+                renderPotDishes();
+            }, 1000);
+        }
+
+        function onTimerComplete(timer) {
+            showCompleteModal(timer);
+            if (state.settings.voice) {
+                speakText(`${timer.dishName} 煮好啦，可以捞出来咯！`);
+            }
+            if (state.settings.vibrate) {
+                try { navigator.vibrate && navigator.vibrate([50, 80, 50]); } catch (e) { /* ignore */ }
+            }
+        }
+
+        function pauseTimer(id) {
+            const timer = state.timers.find(t => t.id === id);
+            if (!timer) return;
+            timer.paused = !timer.paused;
+            if (timer.paused && timer.timerId) {
+                clearInterval(timer.timerId);
+                timer.timerId = null;
+            } else if (!timer.paused && timer.remaining > 0) {
+                startTimerTick(timer);
+            }
+            renderTimers();
+        }
+
+        function removeTimer(id) {
+            const idx = state.timers.findIndex(t => t.id === id);
+            if (idx === -1) return;
+            const timer = state.timers[idx];
+            if (timer.timerId) clearInterval(timer.timerId);
+            state.timers.splice(idx, 1);
+            renderTimers();
+            renderPotDishes();
+            if (state.completeTimerId === id) {
+                closeCompleteModal();
+            }
+        }
+
+        function clearAllTimers() {
+            if (state.timers.length === 0) return;
+            if (!confirm('确定要清空所有计时吗？')) return;
+            state.timers.forEach(t => { if (t.timerId) clearInterval(t.timerId); });
+            state.timers = [];
+            renderTimers();
+            renderPotDishes();
+            closeCompleteModal();
+        }
+
+        // ========================================================================
+        //  渲染：计时卡片 (圆环均匀分布)
+        // ========================================================================
+
+        function renderTimers() {
+            const container = document.getElementById('timerCards');
+            if (!container) return;
+
+            const sorted = [...state.timers].sort((a, b) => a.createdAt - b.createdAt);
+
+            if (sorted.length === 0) {
+                container.innerHTML =
+                    `<div class="empty-state" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:15px;">
+                        🍲 下菜开始计时吧 ~
+                    </div>`;
+                return;
+            }
+
+            // 获取容器尺寸，以百分比定位，圆心在 (50%, 50%)，半径 38%
+            const radius = 38; // %
+            const centerX = 50;
+            const centerY = 50;
+            const count = sorted.length;
+            // 角度起始从 -90° (顶部) 开始，顺时针均匀分布
+            let html = '';
+            sorted.forEach((timer, index) => {
+                const angle = (index / count) * 360 - 90; // 度
+                const rad = angle * Math.PI / 180;
+                const left = centerX + radius * Math.cos(rad);
+                const top = centerY + radius * Math.sin(rad);
+                // 卡片大小动态调整：如果 count > 6，缩小尺寸
+                let scale = 1;
+                if (count > 6) {
+                    scale = Math.max(0.7, 1 - (count - 6) * 0.06);
+                }
+                const timeStr = formatTime(timer.remaining);
+                const isWarning = timer.remaining <= 5 && timer.remaining > 0 && !timer.paused;
+                const pausedStr = timer.paused ? '⏸' : '▶';
+
+                html += `
+                    <div class="timer-card" style="left:${left}%; top:${top}%; transform: translate(-50%, -50%) scale(${scale});" data-id="${timer.id}">
+                        <span class="dish-icon">${timer.icon}</span>
+                        <span class="dish-name">${timer.dishName}</span>
+                        <span class="time-display ${isWarning ? 'warning' : ''}">${timeStr}</span>
+                        <div class="card-actions">
+                            <button class="pause-btn" onclick="pauseTimer(${timer.id})" aria-label="暂停/继续">${pausedStr}</button>
+                            <button class="close-btn" onclick="removeTimer(${timer.id})" aria-label="取消">✕</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function formatTime(seconds) {
+            if (seconds < 0) seconds = 0;
+            if (seconds < 60) return seconds + 's';
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            if (m < 60) return m + 'm' + (s > 0 ? s + 's' : '');
+            return m + 'm';
+        }
+
+        // ========================================================================
+        //  渲染：锅中的菜品 (随机位置，避开卡片区域)
+        // ========================================================================
+
+        function renderPotDishes() {
+            const container = document.getElementById('potDishes');
+            if (!container) return;
+            const active = state.timers.filter(t => t.remaining > 0 || t.paused);
+
+            if (active.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            // 在锅内部随机位置，尽量避开中心区域 (卡片在圆周上)
+            const positions = [
+                { top: '22%', left: '18%' },
+                { top: '18%', left: '48%' },
+                { top: '26%', left: '72%' },
+                { top: '46%', left: '12%' },
+                { top: '44%', left: '58%' },
+                { top: '56%', left: '36%' },
+                { top: '12%', left: '30%' },
+                { top: '62%', left: '68%' },
+                { top: '30%', left: '30%' },
+                { top: '50%', left: '50%' },
+            ];
+
+            let html = '';
+            active.forEach((timer, i) => {
+                const pos = positions[i % positions.length];
+                const isEnding = timer.remaining <= 0;
+                const cls = 'pot-dish-item' + (isEnding ? ' ending' : '');
+                html += `
+                    <span class="${cls}" style="top:${pos.top};left:${pos.left};font-size:${26 + Math.random()*12}px;animation-delay:${(i*0.15)}s;">
+                        ${timer.icon}
+                    </span>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // ========================================================================
+        //  菜品选择器
+        // ========================================================================
+
+        function openDishSelector() {
+            document.getElementById('dishModal').classList.add('open');
+            renderCategoryTabs();
+            renderDishGrid();
+        }
+
+        function closeDishSelector() {
+            document.getElementById('dishModal').classList.remove('open');
+        }
+
+        function renderCategoryTabs() {
+            const container = document.getElementById('categoryTabs');
+            container.innerHTML = CATEGORIES.map(cat =>
+                `<button class="cat-tab ${state.currentCategory === cat ? 'active' : ''}" onclick="selectCategory('${cat}')">${cat}</button>`
+            ).join('');
+        }
+
+        function selectCategory(cat) {
+            state.currentCategory = cat;
+            renderCategoryTabs();
+            renderDishGrid();
+        }
+
+        function renderDishGrid() {
+            const container = document.getElementById('dishGrid');
+            const all = getAllDishes();
+            let filtered = all;
+            if (state.currentCategory !== '全部') {
+                filtered = all.filter(d => d.category === state.currentCategory);
+            }
+            filtered.sort((a, b) => {
+                const fa = state.favorites.includes(a.id) ? 0 : 1;
+                const fb = state.favorites.includes(b.id) ? 0 : 1;
+                return fa - fb;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="empty-state" style="grid-column:1/-1;padding:30px 0;">暂无菜品，试试自定义添加 ✨</div>`;
+                return;
+            }
+
+            let html = '';
+            filtered.forEach(dish => {
+                const isFav = state.favorites.includes(dish.id);
+                const timeLabel = dish.defaultTime >= 60 ? Math.floor(dish.defaultTime / 60) + 'm' : dish.defaultTime + 's';
+                html += `
+                    <div class="dish-item" onclick="addTimer('${dish.id}')">
+                        <span class="d-icon">${dish.icon}</span>
+                        <span class="d-name">${dish.name}</span>
+                        <span class="d-time">⏱ ${timeLabel}</span>
+                        <span class="d-fav ${isFav ? 'active' : ''}" onclick="event.stopPropagation();toggleFavorite('${dish.id}')">
+                            <i class="fas fa-star"></i>
+                        </span>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function toggleFavorite(dishId) {
+            const idx = state.favorites.indexOf(dishId);
+            if (idx > -1) {
+                state.favorites.splice(idx, 1);
+            } else {
+                state.favorites.push(dishId);
+            }
+            saveFavorites();
+            renderDishGrid();
+        }
+
+        function addCustomDish() {
+            const name = prompt('请输入菜品名称：', '毛肚');
+            if (!name) return;
+            const icon = prompt('请输入菜品图标 (一个emoji)：', '🥓');
+            if (!icon) return;
+            const time = prompt('请输入烫煮时长 (秒)：', '30');
+            if (!time || isNaN(time)) return;
+            const category = prompt('请输入分类 (肉类/丸子类/素菜类/菌菇类/海鲜类/主食类)：', '肉类') || '肉类';
+            const id = 'custom_' + Date.now();
+            const newDish = { id, name, icon: icon || '🍽️', category, defaultTime: parseInt(time), unit: 's' };
+            state.customDishes.push(newDish);
+            localStorage.setItem('manshuan_custom', JSON.stringify(state.customDishes));
+            renderDishGrid();
+            state.currentCategory = category;
+            renderCategoryTabs();
+        }
+
+        // ========================================================================
+        //  完成弹窗
+        // ========================================================================
+
+        function showCompleteModal(timer) {
+            state.completeTimerId = timer.id;
+            document.getElementById('completeIcon').textContent = timer.icon;
+            document.getElementById('completeTitle').textContent = `${timer.dishName} 煮好啦！`;
+            document.getElementById('completeSub').textContent = '可以捞出来咯 ~';
+            document.getElementById('completeModal').classList.add('open');
+            if (state.settings.voice) {
+                speakText(`${timer.dishName} 煮好啦，可以捞出来咯！`);
+            }
+        }
+
+        function closeCompleteModal() {
+            document.getElementById('completeModal').classList.remove('open');
+            state.completeTimerId = null;
+        }
+
+        function doneComplete() {
+            if (state.completeTimerId !== null) {
+                removeTimer(state.completeTimerId);
+            }
+            closeCompleteModal();
+            renderPotDishes();
+        }
+
+        function snoozeComplete() {
+            const timer = state.timers.find(t => t.id === state.completeTimerId);
+            if (timer) {
+                timer.remaining += 30;
+                timer.total += 30;
+                if (!timer.paused && !timer.timerId) {
+                    startTimerTick(timer);
+                }
+                renderTimers();
+                renderPotDishes();
+            }
+            closeCompleteModal();
+        }
+
+        // ========================================================================
+        //  语音播报
+        // ========================================================================
+
+        function speakText(text) {
+            if (!('speechSynthesis' in window)) return;
+            try {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-CN';
+                utterance.rate = 0.9;
+                utterance.pitch = 1.2;
+                const voices = window.speechSynthesis.getVoices();
+                const female = voices.find(v => v.lang.includes('zh') && v.name.includes('女'));
+                if (female) utterance.voice = female;
+                window.speechSynthesis.speak(utterance);
+            } catch (e) { /* ignore */ }
+        }
+
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.getVoices();
+            window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
+        }
+
+        // ========================================================================
+        //  设置页
+        // ========================================================================
+
+        function openSettings() {
+            document.getElementById('home').classList.remove('active');
+            document.getElementById('settings').classList.add('active');
+            updateSwitchUI();
+        }
+
+        function closeSettings() {
+            document.getElementById('settings').classList.remove('active');
+            document.getElementById('home').classList.add('active');
+        }
+
+        function updateSwitchUI() {
+            const voice = document.getElementById('switchVoice');
+            const vibrate = document.getElementById('switchVibrate');
+            const bg = document.getElementById('switchBackground');
+            voice.className = 'switch' + (state.settings.voice ? ' on' : '');
+            vibrate.className = 'switch' + (state.settings.vibrate ? ' on' : '');
+            bg.className = 'switch' + (state.settings.background ? ' on' : '');
+        }
+
+        function toggleSwitch(type) {
+            if (type === 'voice') {
+                state.settings.voice = !state.settings.voice;
+                if (state.settings.voice) speakText('语音播报已开启');
+            } else if (type === 'vibrate') {
+                state.settings.vibrate = !state.settings.vibrate;
+                if (state.settings.vibrate) {
+                    try { navigator.vibrate && navigator.vibrate(20); } catch (e) { /* ignore */ }
+                }
+            } else if (type === 'background') {
+                state.settings.background = !state.settings.background;
+            }
+            localStorage.setItem('manshuan_settings', JSON.stringify(state.settings));
+            updateSwitchUI();
+        }
+
+        // ========================================================================
+        //  主题切换
+        // ========================================================================
+
+        let themeIndex = 0;
+        const themes = [
+            { primary: '#FF9A5C', bg: '#FFF9F2' },
+            { primary: '#FF9A9E', bg: '#FFF5F5' },
+            { primary: '#A8D8A8', bg: '#F5FFF5' },
+        ];
+
+        function toggleTheme() {
+            themeIndex = (themeIndex + 1) % themes.length;
+            const t = themes[themeIndex];
+            document.documentElement.style.setProperty('--primary', t.primary);
+            document.documentElement.style.setProperty('--bg', t.bg);
+            document.getElementById('home').style.background = t.bg;
+            document.getElementById('settings').style.background = t.bg;
+            document.querySelectorAll('.btn-primary').forEach(el => {
+                el.style.background = t.primary;
+                el.style.boxShadow = `0 4px 16px ${t.primary}66`;
+            });
+            document.querySelectorAll('.switch.on').forEach(el => {
+                el.style.background = t.primary;
+            });
+            if (state.settings.voice) speakText('主题已切换');
+        }
+
+        // ========================================================================
+        //  后台 & 事件绑定
+        // ========================================================================
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                renderTimers();
+                renderPotDishes();
+            }
+        });
+
+        document.getElementById('dishModal').addEventListener('click', function(e) {
+            if (e.target === this) closeDishSelector();
+        });
+
+        document.addEventListener('click', function(e) {
+            const card = e.target.closest('.timer-card');
+            if (card && !e.target.closest('.card-actions')) {
+                const id = parseInt(card.dataset.id);
+                if (!isNaN(id)) pauseTimer(id);
+            }
+        });
+
+        window.addEventListener('beforeunload', function() {
+            state.timers.forEach(t => { if (t.timerId) clearInterval(t.timerId); });
+            if (bubbleInterval) clearInterval(bubbleInterval);
+        });
+
+        console.log('🍲 小火锅计时器已启动！');
+    </script>
+</body>
+</html>
